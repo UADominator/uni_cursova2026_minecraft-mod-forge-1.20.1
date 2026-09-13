@@ -1,7 +1,8 @@
-package dev.dominator.points_visualiser;
+package dev.dominator.points_visualiser.tests;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import dev.dominator.points_visualiser.Shared;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 

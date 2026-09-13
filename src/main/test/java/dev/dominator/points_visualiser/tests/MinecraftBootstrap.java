@@ -1,4 +1,4 @@
-package dev.dominator.points_visualiser;
+package dev.dominator.points_visualiser.tests;
 
 import net.minecraft.SharedConstants;
 import net.minecraft.core.registries.BuiltInRegistries;

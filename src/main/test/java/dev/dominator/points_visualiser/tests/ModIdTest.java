@@ -1,8 +1,9 @@
-package dev.dominator.points_visualiser;
+package dev.dominator.points_visualiser.tests;
 
+import dev.dominator.points_visualiser.Shared;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 
@@ -10,7 +11,7 @@ class ModIdTest {
 
 	@Test
 	void modIdConstantMatchesGradleProperty() {
-		assertEquals(
+		Assertions.assertEquals(
 			System.getProperty("mod_id"), Shared.MODID,
 			"Shared.MODID drifted from mod_id in gradle.properties: @Mod would register the wrong id"
 		);

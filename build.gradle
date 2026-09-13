@@ -111,7 +111,7 @@ minecraft {
         server {
             workingDirectory project.file('runServer')
 
-            args '--nogui'
+//            args '--nogui'
 
             arg "-mixin.config=${sharedMixinConfig}"
             arg "-mixin.config=${serverMixinConfig}"
@@ -224,6 +224,10 @@ repositories {
         url = 'https://maven.blamejared.com/'
         content { includeGroup 'mezz.jei' }
     }
+    maven {
+        name = 'PLY Reader'
+        url = "https://maven.jzy3d.org/releases"
+    }
     mavenLocal {
         content { includeGroup 'dev.dominator' }
     }
@@ -275,6 +279,9 @@ dependencies {
     clientImplementation fg.deobf('maven.modrinth:oculus:1.20.1-1.8.0')
 
     serverImplementation fg.deobf('maven.modrinth:spark:1.10.53-forge')
+
+    // ply reader
+    serverSide 'org.smurn:jply:0.2.1@jar'
 }
 
 tasks.withType(JavaCompile).configureEach { options.encoding = 'UTF-8' }
