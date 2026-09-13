@@ -1,0 +1,479 @@
+plugins {
+    id 'idea'
+    id 'java'
+    id 'maven-publish'
+    id 'net.minecraftforge.gradle' version '6.0.54'
+    id 'org.parchmentmc.librarian.forgegradle' version '1.+'
+    id 'org.spongepowered.mixin' version '0.7-SNAPSHOT'
+    id 'com.gradleup.shadow' version '9.1.0'
+}
+
+import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
+
+group = mod_group_id
+version = mod_version
+base.archivesName = mod_name
+
+java.toolchain.languageVersion = JavaLanguageVersion.of(17)
+
+def sharedMixinConfig = "${mod_id}.shared.mixins.json"
+def clientMixinConfig = "${mod_id}.client.mixins.json"
+def serverMixinConfig = "${mod_id}.server.mixins.json"
+
+def sharedRefMap = "${mod_id}.shared.refmap.json"
+def clientRefMap = "${mod_id}.client.refmap.json"
+def serverRefMap = "${mod_id}.server.refmap.json"
+def allRefMaps = [sharedRefMap, clientRefMap, serverRefMap]
+
+sourceSets {
+    client {
+        java.srcDirs = ['src/main/client/java']
+        resources.srcDirs = ['src/main/client/resources']
+        compileClasspath += sourceSets.main.compileClasspath + sourceSets.main.output
+        runtimeClasspath += sourceSets.main.runtimeClasspath + sourceSets.main.output
+    }
+
+    server {
+        java.srcDirs = ['src/main/server/java']
+        resources.srcDirs = ['src/main/server/resources']
+        compileClasspath += sourceSets.main.compileClasspath + sourceSets.main.output
+        runtimeClasspath += sourceSets.main.runtimeClasspath + sourceSets.main.output
+    }
+
+    test {
+        java.srcDirs = ['src/main/test/java']
+        resources.srcDirs = ['src/main/test/resources']
+        compileClasspath += sourceSets.client.compileClasspath + sourceSets.server.compileClasspath +
+                sourceSets.client.output + sourceSets.server.output
+        runtimeClasspath += sourceSets.client.runtimeClasspath + sourceSets.server.runtimeClasspath +
+                sourceSets.client.output + sourceSets.server.output
+    }
+    gameTest {
+        java.srcDirs = ['src/main/gametest/java']
+        resources.srcDirs = ['src/main/gametest/resources']
+        compileClasspath += sourceSets.server.compileClasspath + sourceSets.server.output
+        runtimeClasspath += sourceSets.server.runtimeClasspath + sourceSets.server.output
+    }
+}
+
+configurations {
+    sharedSide
+    clientSide
+    serverSide
+
+    implementation.extendsFrom sharedSide
+    clientImplementation.extendsFrom implementation, clientSide
+    serverImplementation.extendsFrom implementation, serverSide
+
+    gameTestImplementation.extendsFrom serverImplementation
+
+    clientAnnotationProcessor.extendsFrom annotationProcessor
+    serverAnnotationProcessor.extendsFrom annotationProcessor
+    testAnnotationProcessor.extendsFrom annotationProcessor
+    gameTestAnnotationProcessor.extendsFrom annotationProcessor
+
+    minecraftLibrary.extendsFrom sharedSide, clientSide, serverSide
+}
+
+minecraft {
+    mappings channel: mapping_channel, version: mapping_version
+    copyIdeResources = true
+
+    def atFile = file('src/main/resources/META-INF/accesstransformer.cfg')
+    if (atFile.exists()) {
+        accessTransformer = atFile
+    }
+
+    def resMain = file('src/main/resources/')
+    def resMainGen = file('src/main/generated/resources/')
+
+    runs {
+        configureEach {
+            property 'forge.logging.markers', 'REGISTRIES'
+            property 'forge.logging.console.level', 'debug'
+            property 'forge.enabledGameTestNamespaces', mod_id
+        }
+
+        client {
+            workingDirectory project.file('run')
+
+            arg "-mixin.config=${sharedMixinConfig}"
+            arg "-mixin.config=${clientMixinConfig}"
+
+            mods {
+                "${mod_id}" {
+                    source sourceSets.main
+                    source sourceSets.client
+                }
+            }
+        }
+
+        server {
+            workingDirectory project.file('runServer')
+
+            args '--nogui'
+
+            arg "-mixin.config=${sharedMixinConfig}"
+            arg "-mixin.config=${serverMixinConfig}"
+
+            mods {
+                "${mod_id}" {
+                    source sourceSets.main
+                    source sourceSets.server
+                }
+            }
+        }
+
+        test {
+            parent minecraft.runs.client
+            workingDirectory project.file('run')
+
+            arg "-mixin.config=${serverMixinConfig}"
+
+            mods {
+                "${mod_id}" {
+                    source sourceSets.main
+                    source sourceSets.client
+                    source sourceSets.server
+                    source sourceSets.test
+                }
+            }
+        }
+
+        // Headless integration tests. The run name must stay 'gameTestServer': FG resolves
+        // the launch target (forgegametestserveruserdev) from it. Boots a dedicated server on
+        // a temporary flat level, runs every @GameTest in the enabled namespaces and exits
+        // with the number of failed required tests, so CI can just check the exit code.
+        gameTestServer {
+            workingDirectory project.file('runGameTest')
+
+            arg "-mixin.config=${sharedMixinConfig}"
+            arg "-mixin.config=${serverMixinConfig}"
+
+            mods {
+                "${mod_id}" {
+                    source sourceSets.main
+                    source sourceSets.server
+                    source sourceSets.gameTest
+                }
+            }
+        }
+
+        data {
+            workingDirectory project.file('runData')
+            args '--mod', mod_id, '--all'
+        }
+        dataMain {
+            parent minecraft.runs.data
+            args '--output', resMainGen,
+                    '--existing', resMain
+            mods {
+                "${mod_id}" {
+                    source sourceSets.main
+                }
+            }
+        }
+        dataClient {
+            parent minecraft.runs.data
+            args '--output', file('src/main/client/generated/resources/'),
+                    '--existing', resMain,
+                    '--existing', resMainGen,
+                    '--existing', file('src/main/client/resources/')
+            mods {
+                "${mod_id}" {
+                    source sourceSets.main
+                    source sourceSets.client
+                }
+            }
+        }
+        dataServer {
+            parent minecraft.runs.data
+            args '--output', file('src/main/server/generated/resources/'),
+                    '--existing', resMain,
+                    '--existing', resMainGen,
+                    '--existing', file('src/main/server/resources/')
+            mods {
+                "${mod_id}" {
+                    source sourceSets.main
+                    source sourceSets.server
+                }
+            }
+        }
+    }
+}
+
+mixin {
+    add sourceSets.main, sharedRefMap
+    add sourceSets.client, clientRefMap
+    add sourceSets.server, serverRefMap
+}
+
+repositories {
+    mavenCentral()
+    maven {
+        name = 'SpongePowered'
+        url = 'https://repo.spongepowered.org/repository/maven-public/'
+    }
+    maven {
+        name = 'Modrinth'
+        url = 'https://api.modrinth.com/maven'
+        content { includeGroup 'maven.modrinth' }
+    }
+    maven {
+        name = 'BlameJared'
+        url = 'https://maven.blamejared.com/'
+        content { includeGroup 'mezz.jei' }
+    }
+    mavenLocal {
+        content { includeGroup 'dev.dominator' }
+    }
+
+    // only for gitlab CI pipelines
+    if (System.getenv('CI_JOB_TOKEN')) {
+        maven {
+            name = 'DominatorLibs'
+            url = "${System.getenv('CI_SERVER_URL') ?: 'https://gitlab.com'}/api/v4/projects/${domilib_project_id}/packages/maven"
+            content { includeGroup 'dev.dominator' }
+            credentials(HttpHeaderCredentials) {
+                name = 'Job-Token'
+                value = System.getenv('CI_JOB_TOKEN')
+            }
+            authentication { header(HttpHeaderAuthentication) }
+        }
+    }
+}
+
+dependencies {
+    minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
+
+    compileOnly libs.lombok
+    annotationProcessor libs.lombok
+    testCompileOnly libs.lombok
+
+    testImplementation platform(libs.junit.bom)
+    testImplementation libs.junit.jupiter
+    testRuntimeOnly libs.junit.platform.launcher
+
+    annotationProcessor "org.spongepowered:mixin:${libs.versions.mixin.get()}:processor"
+
+    serverCompileOnly libs.luckperms.api
+
+    compileOnly fg.deobf(group: "dev.dominator", name: "Dominator-Library", version: domilib_version, classifier: "common")
+    clientCompileOnly fg.deobf(group: "dev.dominator", name: "Dominator-Library", version: domilib_version, classifier: "client")
+    serverCompileOnly fg.deobf(group: "dev.dominator", name: "Dominator-Library", version: domilib_version, classifier: "server")
+    testCompileOnly fg.deobf(group: "dev.dominator", name: "Dominator-Library", version: domilib_version, classifier: "compound")
+
+    // testRuntimeOnly, not runtimeOnly: only runTest wants the compound jar. On plain runtimeOnly
+    // it also lands on the dedicated server runs, where domilib's client code fails the dist check.
+    testRuntimeOnly fg.deobf(group: "dev.dominator", name: "Dominator-Library", version: domilib_version, classifier: "compound")
+    clientRuntimeOnly fg.deobf(group: "dev.dominator", name: "Dominator-Library", version: domilib_version, classifier: "client")
+    serverRuntimeOnly fg.deobf(group: "dev.dominator", name: "Dominator-Library", version: domilib_version, classifier: "server")
+
+    implementation fg.deobf('mezz.jei:jei-1.20.1-forge:15.21.0.148')
+
+    clientImplementation fg.deobf('maven.modrinth:embeddium:0.3.31+mc1.20.1')
+    clientImplementation fg.deobf('maven.modrinth:oculus:1.20.1-1.8.0')
+
+    serverImplementation fg.deobf('maven.modrinth:spark:1.10.53-forge')
+}
+
+tasks.withType(JavaCompile).configureEach { options.encoding = 'UTF-8' }
+
+tasks.named('test', Test) {
+    useJUnitPlatform()
+    systemProperty 'mod_id', mod_id
+    testLogging { events 'passed', 'skipped', 'failed' }
+
+    def workDir = layout.buildDirectory.dir('test-work').get().asFile
+    workingDir = workDir
+    doFirst { workDir.mkdirs() }
+}
+
+tasks.named('check') {
+    dependsOn 'gameTestClasses'
+}
+
+def replaceProperties = [
+        minecraft_version      : minecraft_version,
+        minecraft_version_range: minecraft_version_range,
+        forge_version          : forge_version,
+        forge_version_range    : forge_version_range,
+        loader_version_range   : loader_version_range,
+        mod_id                 : mod_id,
+        mod_name               : mod_name,
+        mod_name_minecraft     : mod_name_minecraft,
+        mod_license            : mod_license,
+        mod_version            : mod_version,
+        mod_authors            : mod_authors,
+        mod_description        : mod_description,
+        domilib_version_range  : domilib_version_range,
+]
+
+tasks.withType(ProcessResources).configureEach {
+    filteringCharset = 'UTF-8'
+    def props = replaceProperties + [SIDE: 'BOTH']
+    inputs.properties props
+    filesMatching(['META-INF/mods.toml', 'pack.mcmeta']) {
+        expand props
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Distribution jars. Four flavors, all ShadowJar so side dependency buckets can
+// be shaded in:
+//   clientJar   - main + client
+//   serverJar - main + server
+//   sharedJar   - main only (library-style mods)
+//   compoundJar - main + client + server (universal)
+// ---------------------------------------------------------------------------
+jar.enabled = false
+shadowJar.enabled = false
+
+def registerModJar = { String taskName, String classifier, List sideSets,
+                       List shadeConfigs, List mixinConfigs, List refMaps, String side ->
+    tasks.register(taskName, ShadowJar) {
+        archiveClassifier = classifier
+
+        // mods.toml is excluded from the processed resources (where SIDE=BOTH) and
+        // re-expanded from source with the side this jar actually targets.
+        from(sourceSets.main.output) {
+            exclude 'META-INF/mods.toml'
+        }
+        sideSets.each { from it.output }
+        from(file('src/main/resources/META-INF/mods.toml')) {
+            into 'META-INF'
+            expand(replaceProperties + [SIDE: side])
+        }
+        inputs.properties(replaceProperties + [modsTomlSide: side])
+
+        configurations = shadeConfigs
+
+        // MixinGradle attaches every refmap to every jar task; drop foreign ones.
+        (allRefMaps - refMaps).each { exclude "**/${it}" }
+
+        manifest {
+            attributes(
+                    'Specification-Title': mod_id,
+                    'Specification-Vendor': mod_authors,
+                    'Specification-Version': '1',
+                    'Implementation-Title': mod_name,
+                    'Implementation-Version': mod_version,
+                    'Implementation-Vendor': mod_authors,
+                    'MixinConfigs': mixinConfigs.join(',')
+            )
+        }
+    }
+}
+
+registerModJar('clientJar', 'client',
+        [sourceSets.client],
+        [configurations.sharedSide, configurations.clientSide],
+        [sharedMixinConfig, clientMixinConfig],
+        [sharedRefMap, clientRefMap],
+        'CLIENT')
+
+registerModJar('serverJar', 'server',
+        [sourceSets.server],
+        [configurations.sharedSide, configurations.serverSide],
+        [sharedMixinConfig, serverMixinConfig],
+        [sharedRefMap, serverRefMap],
+        'SERVER')
+
+registerModJar('compoundJar', 'compound',
+        [sourceSets.client, sourceSets.server],
+        [configurations.sharedSide, configurations.clientSide, configurations.serverSide],
+        [sharedMixinConfig, clientMixinConfig, serverMixinConfig],
+        allRefMaps,
+        'BOTH')
+
+registerModJar('sharedJar', 'shared',
+        [],
+        [configurations.sharedSide],
+        [sharedMixinConfig],
+        [sharedRefMap],
+        'BOTH')
+
+reobf {
+    clientJar {
+        classpath.from(sourceSets.client.compileClasspath)
+    }
+    serverJar {
+        classpath.from(sourceSets.server.compileClasspath)
+    }
+    compoundJar {
+        classpath.from(sourceSets.client.compileClasspath)
+        classpath.from(sourceSets.server.compileClasspath)
+    }
+    sharedJar {
+        classpath.from(sourceSets.main.compileClasspath)
+    }
+}
+
+tasks.named('build') {
+    dependsOn 'clientJar', 'serverJar', 'compoundJar', 'sharedJar'
+}
+
+afterEvaluate {
+    tasks.named('reobfJar') { enabled = false }
+}
+
+def modJarTasks = ['clientJar', 'serverJar', 'compoundJar', 'sharedJar']
+
+def gitlabProjectId = System.getenv('CI_PROJECT_ID')
+def gitlabServerUrl = System.getenv('CI_SERVER_URL') ?: 'https://gitlab.com'
+
+publishing {
+    publications {
+        mod(MavenPublication) {
+            groupId = mod_group_id
+            artifactId = base.archivesName.get()
+            version = mod_version
+
+            modJarTasks.each { artifact tasks.named(it) }
+
+            pom {
+                name = mod_name
+                description = mod_description
+                licenses {
+                    license { name = mod_license }
+                }
+            }
+        }
+    }
+
+    repositories {
+        if (gitlabProjectId) {
+            maven {
+                name = 'GitLab'
+                url = "${gitlabServerUrl}/api/v4/projects/${gitlabProjectId}/packages/maven"
+
+                credentials(HttpHeaderCredentials) {
+                    name = 'Job-Token'
+                    value = System.getenv('CI_JOB_TOKEN')
+                }
+                authentication { header(HttpHeaderAuthentication) }
+            }
+        }
+    }
+}
+
+tasks.withType(AbstractPublishToMaven).configureEach {
+    dependsOn modJarTasks.collect { "reobf${it.capitalize()}" }
+}
+
+// GameTestMain swallows a mod loading failure and still exits 0, so the run can report success
+// without having executed a single test. GameTestReport only writes the XML once tests start.
+// configureEach, not afterEvaluate: ForgeGradle registers its run tasks later than this script.
+tasks.configureEach { task ->
+    if (task.name != 'runGameTestServer') {
+        return
+    }
+    def report = file('runGameTest/test-results/gametest.xml')
+    task.doFirst { report.delete() }
+    task.doLast {
+        if (!report.exists()) {
+            throw new GradleException('runGameTestServer ran no tests - the server never reached ' +
+                    'them. Check the log above for mod loading or mixin failures.')
+        }
+    }
+}

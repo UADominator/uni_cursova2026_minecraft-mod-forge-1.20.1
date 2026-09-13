@@ -1,0 +1,12 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "compatibilityLevel": "JAVA_17",
+  "package": "dev.dominator.points_visualiser.mixins",
+  "refmap": "points_visualiser.client.refmap.json",
+  "mixins": [
+  ],
+  "injectors": {
+	"defaultRequire": 1
+  }
+}

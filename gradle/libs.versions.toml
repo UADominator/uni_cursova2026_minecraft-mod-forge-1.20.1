@@ -1,0 +1,14 @@
+[versions]
+junit = "5.11.4"
+lombok = "1.18.46"
+luckperms = "5.4"
+# Must match the Mixin version Forge ships at runtime (Forge 47.x bundles 0.8.5).
+mixin = "0.8.5"
+
+[libraries]
+# The BOM supplies the versions for the two entries below.
+junit-bom = { module = "org.junit:junit-bom", version.ref = "junit" }
+junit-jupiter = { module = "org.junit.jupiter:junit-jupiter" }
+junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher" }
+lombok = { module = "org.projectlombok:lombok", version.ref = "lombok" }
+luckperms-api = { module = "net.luckperms:api", version.ref = "luckperms" }
