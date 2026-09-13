@@ -6,7 +6,7 @@ import java.util.List;
 
 public class PlyMath {
 
-	///  Suggest 1i equals 1m in ply models. Let`s scale all 10 times for better minecraft details
+	///  Suggest 1i equals 1m in ply models. Let`s scale all by *x* times for better minecraft details
 	private final static float SCALE = 40f;
 
 	public static List<Point> preparePoints(List<Point> points) {
