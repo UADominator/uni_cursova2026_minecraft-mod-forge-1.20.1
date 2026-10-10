@@ -22,20 +22,4 @@ public class SmokeGameTest {
 		helper.assertBlockPresent(Blocks.DIAMOND_BLOCK, pos);
 		helper.succeed();
 	}
-
-	@GameTest(template = "empty")
-	public static void gravityMakesSandFall(GameTestHelper helper) {
-		BlockPos floor = new BlockPos(1, 0, 1);
-		BlockPos above = new BlockPos(1, 2, 1);
-
-		// The structure is pure air, so the test provides its own floor.
-		helper.setBlock(floor, Blocks.STONE);
-		helper.setBlock(above, Blocks.SAND);
-
-		// succeedWhen re-checks every tick until it passes or times out - never sleep.
-		helper.succeedWhen(() -> {
-			helper.assertBlockPresent(Blocks.SAND, floor.above());
-			helper.assertBlockNotPresent(Blocks.SAND, above);
-		});
-	}
 }

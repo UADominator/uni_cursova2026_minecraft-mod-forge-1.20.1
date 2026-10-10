@@ -1,9 +1,11 @@
 package dev.dominator.points_visualiser;
 
 import dev.dominator.points_visualiser.builder.PlyBuilder;
-import dev.dominator.points_visualiser.math.PlyMath;
-import dev.dominator.points_visualiser.temp.MeshGenerator;
-import net.minecraft.resources.ResourceLocation;
+import dev.dominator.points_visualiser.color.ColorBehaviour;
+import dev.dominator.points_visualiser.commands.BuildPlyCommand;
+import dev.dominator.points_visualiser.commands.CleanupWorld;
+import net.minecraftforge.event.RegisterCommandsEvent;
+import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.server.ServerStartedEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
@@ -25,9 +27,18 @@ public class Server {
 	public static class ServerEvents {
 		@SubscribeEvent
 		public static void onServerStartedEvent(ServerStartedEvent event) {
-			MeshGenerator.generatePoints(new ResourceLocation(Shared.MODID, "worldgen/fragment.ply"));
-			PlyMath.preparePoints(MeshGenerator.pointsCloud);
-			PlyBuilder.INSTANCE.insertPly(MeshGenerator.pointsCloud);
+			ColorBehaviour.initColors();
+		}
+
+		@SubscribeEvent
+		public static void onRegisterCommands(RegisterCommandsEvent event) {
+			event.getDispatcher().register(new BuildPlyCommand().register());
+			event.getDispatcher().register(new CleanupWorld().register());
+		}
+
+		@SubscribeEvent
+		public static void tick(TickEvent.ServerTickEvent event) {
+			PlyBuilder.INSTANCE.insertPly();
 		}
 	}
 }

@@ -13,22 +13,27 @@ import org.smurn.jply.PlyReaderFile;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
+
+import static dev.dominator.points_visualiser.math.PlyMath.packRGB;
 
 public class MeshGenerator {
 
-	public static List<Point> pointsCloud = new ArrayList<>();
 
 	private static InputStream resourceLocationToStream(ResourceLocation location) throws IOException {
 		return ServerLifecycleHooks.getCurrentServer()
-			.getResourceManager()
-			.getResource(location)
-			.orElseThrow()
-			.open();
+			       .getResourceManager()
+			       .getResource(location)
+			       .orElseThrow()
+			       .open();
 	}
 
-	public static void generatePoints(ResourceLocation location) {
+	public static Collection<Point> generatePoints(ResourceLocation location) {
 		Shared.LOGGER.info("Generating points for " + location);
+
+		List<Point> pointsCloud = new ArrayList<>();
+
 		try (InputStream is = resourceLocationToStream(location);
 			PlyReader plyReader = new PlyReaderFile(is)) {
 
@@ -47,7 +52,7 @@ public class MeshGenerator {
 						int g = pointData.getInt("green");
 						int b = pointData.getInt("blue");
 
-						pointsCloud.add(new Point(x, y, z, r, g, b));
+						pointsCloud.add(new Point(x, y, z, packRGB(r, g, b)));
 					}
 				}
 				reader.close();
@@ -55,5 +60,6 @@ public class MeshGenerator {
 		} catch (Exception e) {
 			Shared.LOGGER.error("Error while generating points", e);
 		}
+		return pointsCloud;
 	}
 }

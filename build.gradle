@@ -44,9 +44,9 @@ sourceSets {
         java.srcDirs = ['src/main/test/java']
         resources.srcDirs = ['src/main/test/resources']
         compileClasspath += sourceSets.client.compileClasspath + sourceSets.server.compileClasspath +
-                sourceSets.client.output + sourceSets.server.output
+            sourceSets.client.output + sourceSets.server.output
         runtimeClasspath += sourceSets.client.runtimeClasspath + sourceSets.server.runtimeClasspath +
-                sourceSets.client.output + sourceSets.server.output
+            sourceSets.client.output + sourceSets.server.output
     }
     gameTest {
         java.srcDirs = ['src/main/gametest/java']
@@ -132,10 +132,10 @@ minecraft {
 
             mods {
                 "${mod_id}" {
+                    source sourceSets.test
                     source sourceSets.main
                     source sourceSets.client
                     source sourceSets.server
-                    source sourceSets.test
                 }
             }
         }
@@ -166,7 +166,7 @@ minecraft {
         dataMain {
             parent minecraft.runs.data
             args '--output', resMainGen,
-                    '--existing', resMain
+                '--existing', resMain
             mods {
                 "${mod_id}" {
                     source sourceSets.main
@@ -176,9 +176,9 @@ minecraft {
         dataClient {
             parent minecraft.runs.data
             args '--output', file('src/main/client/generated/resources/'),
-                    '--existing', resMain,
-                    '--existing', resMainGen,
-                    '--existing', file('src/main/client/resources/')
+                '--existing', resMain,
+                '--existing', resMainGen,
+                '--existing', file('src/main/client/resources/')
             mods {
                 "${mod_id}" {
                     source sourceSets.main
@@ -189,9 +189,9 @@ minecraft {
         dataServer {
             parent minecraft.runs.data
             args '--output', file('src/main/server/generated/resources/'),
-                    '--existing', resMain,
-                    '--existing', resMainGen,
-                    '--existing', file('src/main/server/resources/')
+                '--existing', resMain,
+                '--existing', resMainGen,
+                '--existing', file('src/main/server/resources/')
             mods {
                 "${mod_id}" {
                     source sourceSets.main
@@ -263,15 +263,9 @@ dependencies {
     serverCompileOnly libs.luckperms.api
 
     compileOnly fg.deobf(group: "dev.dominator", name: "Dominator-Library", version: domilib_version, classifier: "common")
-    clientCompileOnly fg.deobf(group: "dev.dominator", name: "Dominator-Library", version: domilib_version, classifier: "client")
-    serverCompileOnly fg.deobf(group: "dev.dominator", name: "Dominator-Library", version: domilib_version, classifier: "server")
-    testCompileOnly fg.deobf(group: "dev.dominator", name: "Dominator-Library", version: domilib_version, classifier: "compound")
-
-    // testRuntimeOnly, not runtimeOnly: only runTest wants the compound jar. On plain runtimeOnly
-    // it also lands on the dedicated server runs, where domilib's client code fails the dist check.
-    testRuntimeOnly fg.deobf(group: "dev.dominator", name: "Dominator-Library", version: domilib_version, classifier: "compound")
-    clientRuntimeOnly fg.deobf(group: "dev.dominator", name: "Dominator-Library", version: domilib_version, classifier: "client")
-    serverRuntimeOnly fg.deobf(group: "dev.dominator", name: "Dominator-Library", version: domilib_version, classifier: "server")
+    clientImplementation fg.deobf(group: "dev.dominator", name: "Dominator-Library", version: domilib_version, classifier: "client")
+    serverImplementation fg.deobf(group: "dev.dominator", name: "Dominator-Library", version: domilib_version, classifier: "server")
+    testImplementation fg.deobf(group: "dev.dominator", name: "Dominator-Library", version: domilib_version, classifier: "compound")
 
     implementation fg.deobf('mezz.jei:jei-1.20.1-forge:15.21.0.148')
 
@@ -301,19 +295,19 @@ tasks.named('check') {
 }
 
 def replaceProperties = [
-        minecraft_version      : minecraft_version,
-        minecraft_version_range: minecraft_version_range,
-        forge_version          : forge_version,
-        forge_version_range    : forge_version_range,
-        loader_version_range   : loader_version_range,
-        mod_id                 : mod_id,
-        mod_name               : mod_name,
-        mod_name_minecraft     : mod_name_minecraft,
-        mod_license            : mod_license,
-        mod_version            : mod_version,
-        mod_authors            : mod_authors,
-        mod_description        : mod_description,
-        domilib_version_range  : domilib_version_range,
+    minecraft_version      : minecraft_version,
+    minecraft_version_range: minecraft_version_range,
+    forge_version          : forge_version,
+    forge_version_range    : forge_version_range,
+    loader_version_range   : loader_version_range,
+    mod_id                 : mod_id,
+    mod_name               : mod_name,
+    mod_name_minecraft     : mod_name_minecraft,
+    mod_license            : mod_license,
+    mod_version            : mod_version,
+    mod_authors            : mod_authors,
+    mod_description        : mod_description,
+    domilib_version_range  : domilib_version_range,
 ]
 
 tasks.withType(ProcessResources).configureEach {
@@ -360,45 +354,45 @@ def registerModJar = { String taskName, String classifier, List sideSets,
 
         manifest {
             attributes(
-                    'Specification-Title': mod_id,
-                    'Specification-Vendor': mod_authors,
-                    'Specification-Version': '1',
-                    'Implementation-Title': mod_name,
-                    'Implementation-Version': mod_version,
-                    'Implementation-Vendor': mod_authors,
-                    'MixinConfigs': mixinConfigs.join(',')
+                'Specification-Title': mod_id,
+                'Specification-Vendor': mod_authors,
+                'Specification-Version': '1',
+                'Implementation-Title': mod_name,
+                'Implementation-Version': mod_version,
+                'Implementation-Vendor': mod_authors,
+                'MixinConfigs': mixinConfigs.join(',')
             )
         }
     }
 }
 
 registerModJar('clientJar', 'client',
-        [sourceSets.client],
-        [configurations.sharedSide, configurations.clientSide],
-        [sharedMixinConfig, clientMixinConfig],
-        [sharedRefMap, clientRefMap],
-        'CLIENT')
+    [sourceSets.client],
+    [configurations.sharedSide, configurations.clientSide],
+    [sharedMixinConfig, clientMixinConfig],
+    [sharedRefMap, clientRefMap],
+    'CLIENT')
 
 registerModJar('serverJar', 'server',
-        [sourceSets.server],
-        [configurations.sharedSide, configurations.serverSide],
-        [sharedMixinConfig, serverMixinConfig],
-        [sharedRefMap, serverRefMap],
-        'SERVER')
+    [sourceSets.server],
+    [configurations.sharedSide, configurations.serverSide],
+    [sharedMixinConfig, serverMixinConfig],
+    [sharedRefMap, serverRefMap],
+    'SERVER')
 
 registerModJar('compoundJar', 'compound',
-        [sourceSets.client, sourceSets.server],
-        [configurations.sharedSide, configurations.clientSide, configurations.serverSide],
-        [sharedMixinConfig, clientMixinConfig, serverMixinConfig],
-        allRefMaps,
-        'BOTH')
+    [sourceSets.client, sourceSets.server],
+    [configurations.sharedSide, configurations.clientSide, configurations.serverSide],
+    [sharedMixinConfig, clientMixinConfig, serverMixinConfig],
+    allRefMaps,
+    'BOTH')
 
 registerModJar('sharedJar', 'shared',
-        [],
-        [configurations.sharedSide],
-        [sharedMixinConfig],
-        [sharedRefMap],
-        'BOTH')
+    [],
+    [configurations.sharedSide],
+    [sharedMixinConfig],
+    [sharedRefMap],
+    'BOTH')
 
 reobf {
     clientJar {
@@ -480,7 +474,7 @@ tasks.configureEach { task ->
     task.doLast {
         if (!report.exists()) {
             throw new GradleException('runGameTestServer ran no tests - the server never reached ' +
-                    'them. Check the log above for mod loading or mixin failures.')
+                'them. Check the log above for mod loading or mixin failures.')
         }
     }
 }

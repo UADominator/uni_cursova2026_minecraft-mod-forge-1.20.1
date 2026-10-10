@@ -5,6 +5,9 @@
   "package": "dev.dominator.points_visualiser.mixins",
   "refmap": "points_visualiser.server.refmap.json",
   "mixins": [
+    "MixinBlockStateBase",
+    "MixinFallingBlock",
+    "MixinTntBlock"
   ],
   "injectors": {
 	"defaultRequire": 1
