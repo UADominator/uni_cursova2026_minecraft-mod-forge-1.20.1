@@ -1,8 +1,7 @@
-package dev.dominator.points_visualiser.tests;
+package dev.dominator.points_visualiser;
 
 import com.google.gson.GsonBuilder;
 import com.mojang.blaze3d.platform.NativeImage;
-import dev.dominator.points_visualiser.Shared;
 import dev.dominator.points_visualiser.color.ColorBehaviour;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.block.model.BakedQuad;
