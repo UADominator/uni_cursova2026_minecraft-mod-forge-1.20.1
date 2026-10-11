@@ -13,6 +13,7 @@ import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.FireBlock;
 import net.minecraft.world.level.block.LeverBlock;
 import net.minecraft.world.level.block.RedStoneWireBlock;
 import net.minecraft.world.level.block.RedstoneLampBlock;
@@ -131,6 +132,62 @@ public class MixinGameTest {
 		if (!helper.getLevel().getEntities(EntityType.TNT, area, Entity::isAlive).isEmpty()) {
 			throw new GameTestAssertException("Did not expect primed TNT near " + tnt);
 		}
+	}
+
+	// MixinFluidState
+
+	@GameTest(template = "empty")
+	public static void waterDoesNotFlow(GameTestHelper helper) {
+		assertDoesNotFlow(helper, Blocks.WATER);
+	}
+
+	@GameTest(template = "empty")
+	public static void lavaDoesNotFlow(GameTestHelper helper) {
+		assertDoesNotFlow(helper, Blocks.LAVA);
+	}
+
+	// Lava schedules its first spread after 30 ticks.
+	private static void assertDoesNotFlow(GameTestHelper helper, Block fluid) {
+		BlockPos source = new BlockPos(1, 1, 1);
+
+		helper.setBlock(FLOOR, Blocks.STONE);
+		helper.setBlock(source, fluid);
+
+		helper.runAfterDelay(40, () -> {
+			helper.assertBlockPresent(Blocks.AIR, source.east());
+			helper.succeed();
+		});
+	}
+
+	// MixinBlockStateTicks
+
+	// Ice melts only in block light above 11, and the light engine needs a few ticks to spread it.
+	@GameTest(template = "empty")
+	public static void iceDoesNotMelt(GameTestHelper helper) {
+		BlockPos ice = new BlockPos(1, 1, 1);
+
+		helper.setBlock(ice, Blocks.ICE);
+		helper.setBlock(ice.east(), Blocks.GLOWSTONE);
+
+		helper.runAfterDelay(10, () -> {
+			helper.randomTick(ice);
+			helper.assertBlockPresent(Blocks.ICE, ice);
+			helper.succeed();
+		});
+	}
+
+	// Each fire tick (every 30 to 39 ticks) raises the age with a chance of 2/3.
+	@GameTest(template = "empty", timeoutTicks = 200)
+	public static void fireDoesNotAge(GameTestHelper helper) {
+		BlockPos fire = new BlockPos(1, 1, 1);
+
+		helper.setBlock(FLOOR, Blocks.STONE);
+		helper.setBlock(fire, Blocks.FIRE);
+
+		helper.runAfterDelay(150, () -> {
+			helper.assertBlockProperty(fire, FireBlock.AGE, 0);
+			helper.succeed();
+		});
 	}
 
 	// MixinBlockStateBase

@@ -39,11 +39,19 @@ public class Point {
 	@Override
 	public boolean equals(Object o) {
 		if (!(o instanceof Point point)) return false;
-		return Float.compare(x, point.x) == 0 && Float.compare(y, point.y) == 0 && Float.compare(z, point.z) == 0;
+		return compare(x, point.x) == 0 && compare(y, point.y) == 0 && compare(z, point.z) == 0;
+	}
+
+	/// make -0 and 0 same number
+	private static int compare(float first, float second) {
+		if (first<second) return -1;
+		if (first>second) return 1;
+		return 0;
 	}
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(x, y, z);
+		// + 0f turns -0f into 0f, to match equals
+		return Objects.hash(x + 0f, y + 0f, z + 0f);
 	}
 }

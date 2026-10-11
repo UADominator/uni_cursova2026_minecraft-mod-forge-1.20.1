@@ -6,7 +6,9 @@
   "refmap": "points_visualiser.server.refmap.json",
   "mixins": [
     "MixinBlockStateBase",
+    "MixinBlockStateTicks",
     "MixinFallingBlock",
+    "MixinFluidState",
     "MixinTntBlock"
   ],
   "injectors": {

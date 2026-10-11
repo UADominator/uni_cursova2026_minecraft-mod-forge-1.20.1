@@ -91,7 +91,7 @@ public class ColorBehaviour {
 		}
 	}
 
-	static double[] toLab(int rgb) {
+	public static double[] toLab(int rgb) {
 		double r = lin((rgb >> 16 & 0xFF) / 255.0);
 		double g = lin((rgb >> 8 & 0xFF) / 255.0);
 		double b = lin((rgb & 0xFF) / 255.0);
@@ -104,11 +104,11 @@ public class ColorBehaviour {
 		return new double[]{ 116 * fy - 16, 500 * (fx - fy), 200 * (fy - fz) };
 	}
 
-	static double lin(double c) {
+	public static double lin(double c) {
 		return c<=0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
 	}
 
-	static double f(double t) {
+	public static double f(double t) {
 		return t>216.0 / 24389 ? Math.cbrt(t) : (24389.0 / 27 * t + 16) / 116;
 	}
 
